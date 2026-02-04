@@ -5,46 +5,24 @@ pipeline {
         choice(
             name: 'ACTION',
             choices: ['build', 'deploy', 'remove'],
-            description: 'Choose pipeline action'
+            description: 'Select what you want to do'
         )
-        string(
-            name: 'IMAGE_NAME',
-            defaultValue: 'spring_project2003',
-            description: 'Docker image name'
-        )
-        string(
-            name: 'IMAGE_TAG',
-            defaultValue: 'v1',
-            description: 'Docker image tag'
-        )
-        string(
-            name: 'DOCKERHUB_USERNAME',
-            defaultValue: 'jenithjs',
-            description: 'DockerHub username'
-        )
-    }
-
-    environment {
-        IMAGE = "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
     }
 
     stages {
 
-        /* ================= CHECKOUT ================= */
         stage('Checkout Code') {
             when { expression { params.ACTION == 'build' } }
             steps {
-                git branch: 'master',
-                    url: 'https://github.com/JenithJS/SpringBoot_using_Jenkins.git',
-                    credentialsId: 'github-creds'
+                git url: 'https://github.com/JenithJS/SpringBoot_using_Jenkins.git',
+                    branch: 'master'
             }
         }
 
-        /* ================= BUILD ================= */
         stage('Build Docker Image') {
             when { expression { params.ACTION == 'build' } }
             steps {
-                sh 'docker build -t $IMAGE .'
+                sh 'docker build -t jenithjs/spring_project2003:v1 .'
             }
         }
 
@@ -64,19 +42,11 @@ pipeline {
         stage('Docker Push') {
             when { expression { params.ACTION == 'build' } }
             steps {
-                sh 'docker push $IMAGE'
+                sh 'docker push jenithjs/spring_project2003:v1'
             }
         }
 
-        stage('Delete Local Image') {
-            when { expression { params.ACTION == 'build' } }
-            steps {
-                sh 'docker rmi $IMAGE || true'
-            }
-        }
-
-        /* ================= DEPLOY ================= */
-        stage('Deploy') {
+        stage('Deploy Application') {
             when { expression { params.ACTION == 'deploy' } }
             steps {
                 sh '''
@@ -87,8 +57,7 @@ pipeline {
             }
         }
 
-        /* ================= REMOVE ================= */
-        stage('Remove') {
+        stage('Remove Application') {
             when { expression { params.ACTION == 'remove' } }
             steps {
                 sh 'docker-compose down || true'
@@ -99,7 +68,7 @@ pipeline {
     post {
         always {
             sh 'docker logout || true'
-            echo "Pipeline execution completed successfully"
+            echo 'Pipeline completed'
         }
     }
 }
